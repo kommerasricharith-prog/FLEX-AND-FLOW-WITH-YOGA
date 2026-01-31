@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Yoga Booking App</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#e8f5f1;
+}
+.container{
+  max-width:420px;
+  margin:auto;
+  background:#ffffff;
+  min-height:100vh;
+  padding:20px;
+}
+h2{text-align:center;color:#0b7d6e}
+button{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:none;
+  border-radius:6px;
+  background:#0b7d6e;
+  color:#fff;
+  font-size:16px;
+}
+input{
+  width:100%;
+  padding:10px;
+  margin-top:8px;
+  border:1px solid #ccc;
+  border-radius:5px;
+}
+.card{
+  background:#f1fff9;
+  padding:12px;
+  margin-top:12px;
+  border-radius:8px;
+}
+.hidden{display:none}
+a{color:#0b7d6e;text-decoration:none;font-weight:bold}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- ROLE SELECTION -->
+<div id="roleScreen">
+  <h2>Select Role</h2>
+  <button onclick="selectRole('student')">Student</button>
+  <button onclick="selectRole('trainer')">Trainer</button>
+</div>
+
+<!-- STUDENT LOGIN -->
+<div id="studentLogin" class="hidden">
+  <h2>Student Login</h2>
+  <input id="sname" placeholder="Student Name">
+  <input id="sphone" placeholder="Phone Number">
+  <input id="sdob" type="date">
+  <button onclick="studentLogin()">Continue</button>
+</div>
+
+<!-- STUDENT DASHBOARD -->
+<div id="studentDash" class="hidden">
+  <h2 id="studentHi"></h2>
+
+  <div class="card">
+    <b>Trainer:</b> Sandhya Bhedodkar
+  </div>
+
+  <div class="card">
+    <h3>Book Slot</h3>
+    <input id="bdate" type="date">
+    <input id="btime" type="time">
+    <button onclick="bookSlot()">Book Slot</button>
+  </div>
+
+  <div class="card">
+    <h3>Yoga Videos</h3>
+
+    <iframe width="100%" height="200"
+      src="https://www.youtube.com/embed/dAqQqmaI9vY"
+      allowfullscreen></iframe>
+
+    <br><br>
+
+    <iframe width="100%" height="200"
+      src="https://www.youtube.com/embed/C2RAjUEAoLI"
+      allowfullscreen></iframe>
+  </div>
+</div>
+
+<!-- TRAINER LOGIN -->
+<div id="trainerLogin" class="hidden">
+  <h2>Trainer Login</h2>
+  <input id="tpass" type="password" placeholder="Password">
+  <button onclick="trainerLogin()">Login</button>
+</div>
+
+<!-- TRAINER DASHBOARD -->
+<div id="trainerDash" class="hidden">
+  <h2>Trainer Dashboard</h2>
+  <div id="bookingList"></div>
+</div>
+
+</div>
+
+<audio id="alarm">
+  <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg">
+</audio>
+
+<script>
+function selectRole(role){
+  document.getElementById("roleScreen").classList.add("hidden");
+  if(role==="student"){
+    document.getElementById("studentLogin").classList.remove("hidden");
+  }else{
+    document.getElementById("trainerLogin").classList.remove("hidden");
+  }
+}
+
+function studentLogin(){
+  var name=document.getElementById("sname").value;
+  var phone=document.getElementById("sphone").value;
+  var dob=document.getElementById("sdob").value;
+
+  if(name===""||phone===""||dob===""){
+    alert("Please fill all details");
+    return;
+  }
+
+  localStorage.setItem("sname",name);
+  localStorage.setItem("sphone",phone);
+  localStorage.setItem("sdob",dob);
+
+  document.getElementById("studentLogin").classList.add("hidden");
+  document.getElementById("studentDash").classList.remove("hidden");
+  document.getElementById("studentHi").innerText="Hi "+name;
+}
+
+function bookSlot(){
+  var date=document.getElementById("bdate").value;
+  var time=document.getElementById("btime").value;
+
+  if(date===""||time===""){
+    alert("Select date and time");
+    return;
+  }
+
+  var booking={
+    name:localStorage.getItem("sname"),
+    phone:localStorage.getItem("sphone"),
+    date:date,
+    time:time,
+    seen:false
+  };
+
+  var list=JSON.parse(localStorage.getItem("bookings")||"[]");
+  list.push(booking);
+  localStorage.setItem("bookings",JSON.stringify(list));
+
+  alert("Slot booked. Trainer notified.");
+}
+
+function trainerLogin(){
+  var pass=document.getElementById("tpass").value;
+  if(pass!=="9440"){
+    alert("Wrong password");
+    return;
+  }
+  document.getElementById("trainerLogin").classList.add("hidden");
+  document.getElementById("trainerDash").classList.remove("hidden");
+  loadBookings();
+}
+
+function loadBookings(){
+  var box=document.getElementById("bookingList");
+  box.innerHTML="";
+  var list=JSON.parse(localStorage.getItem("bookings")||"[]");
+
+  if(list.length===0){
+    box.innerHTML="No bookings yet";
+    return;
+  }
+
+  for(var i=0;i<list.length;i++){
+    var b=list[i];
+    var div=document.createElement("div");
+    div.className="card";
+    div.innerHTML=
+      "<b>"+b.name+"</b><br>"+
+      "📞 <a href='tel:"+b.phone+"'>"+b.phone+"</a><br>"+
+      "Date: "+b.date+"<br>"+
+      "Time: "+b.time+"<br>"+
+      "<button onclick='markSeen("+i+")'>Seen</button>";
+    box.appendChild(div);
+
+    if(!b.seen){
+      startAlarm(b.date,b.time);
+    }
+  }
+}
+
+function startAlarm(date,time){
+  var alarm=document.getElementById("alarm");
+  var target=new Date(date+"T"+time).getTime()+60000;
+
+  var interval=setInterval(function(){
+    if(Date.now()>target){
+      alarm.play();
+
+      // 🔴 AUTO STOP AFTER 10 SECONDS
+      setTimeout(function(){
+        alarm.pause();
+        alarm.currentTime=0;
+      },10000);
+    }
+  },5000);
+
+  alarm.dataset.interval=interval;
+}
+
+function markSeen(i){
+  var list=JSON.parse(localStorage.getItem("bookings"));
+  list[i].seen=true;
+  localStorage.setItem("bookings",JSON.stringify(list));
+
+  var alarm=document.getElementById("alarm");
+  alarm.pause();
+  alarm.currentTime=0;
+  clearInterval(alarm.dataset.interval);
+
+  loadBookings();
+}
+</script>
+
+</body>
+</html>
